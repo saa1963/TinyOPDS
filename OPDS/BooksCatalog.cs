@@ -110,26 +110,26 @@ namespace TinyOPDS.OPDS
             switch (searchFor)
             {
                 case SearchFor.Author:
-                    books = Library.GetBooksByAuthor(searchPattern);
+                    books = Library.Current.GetBooksByAuthor(searchPattern);
                     catalogType = "/author/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Sequence:
-                    books = Library.GetBooksBySequence(searchPattern);
+                    books = Library.Current.GetBooksBySequence(searchPattern);
                     catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Genre:
-                    books = Library.GetBooksByGenre(searchPattern);
+                    books = Library.Current.GetBooksByGenre(searchPattern);
                     catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
-                    books = Library.GetBooksByTitle(searchPattern);
+                    books = Library.Current.GetBooksByTitle(searchPattern);
                     // For search, also return books by 
                     if (threshold > 50)
                     {
                         string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
                         if (!string.IsNullOrEmpty(translit))
                         {
-                            List<Book> transTitles = Library.GetBooksByTitle(translit);
+                            List<Book> transTitles = Library.Current.GetBooksByTitle(translit);
                             if (transTitles.Count > 0) books.AddRange(transTitles);
                         }
                     }
@@ -173,7 +173,7 @@ namespace TinyOPDS.OPDS
 
             bool useCyrillic = Localizer.Language.Equals("ru");
 
-            List<Genre> genres = Library.Genres;
+            List<Genre> genres = Library.Current.Genres;
 
             // Add catalog entries
             for (int i = startIndex; i < endIndex; i++)

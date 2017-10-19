@@ -21,21 +21,32 @@ using System.Reflection;
 
 namespace TinyOPDS.Data
 {
-    public static class Library
+    public class Library : ILibrary
     {
-        public static event EventHandler LibraryLoaded;
-        private static Dictionary<string, string> _paths = new Dictionary<string, string>();
-        private static Dictionary<string, Book> _books = new Dictionary<string, Book>();
-        private static string _databaseFullPath;
-        private static List<Genre> _genres;
-        private static Dictionary<string, string> _soundexedGenres;
-        private static bool _converted = false;
+        static Library _library = null;
+        public event EventHandler LibraryLoaded;
+        private Dictionary<string, string> _paths = new Dictionary<string, string>();
+        private Dictionary<string, Book> _books = new Dictionary<string, Book>();
+        private string _databaseFullPath;
+        private List<Genre> _genres;
+        private Dictionary<string, string> _soundexedGenres;
+        private bool _converted = false;
+
+        public static Library Current
+        {
+            get
+            {
+                if (_library == null)
+                    _library = new Library();
+                return _library;
+            }
+        }
 
         /// <summary>
         /// Default constructor
         /// Opens library"books.db" from the executable file location
         /// </summary>
-        static Library()
+        Library()
         {
             LoadAsync();
 
@@ -73,7 +84,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Load library database in background
         /// </summary>
-        public static void LoadAsync()
+        public void LoadAsync()
         {
             // Clear library and free memory
             FB2Count = EPUBCount = 0;
@@ -106,19 +117,19 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Full path to the library folder
         /// </summary>
-        public static string LibraryPath { get; set; }
+        public string LibraryPath { get; set; }
 
         /// <summary>
         /// Library changed flag (we should save!)
         /// </summary>
-        public static bool IsChanged { get; set; }
+        public bool IsChanged { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="bookPath"></param>
         /// <returns></returns>
-        public static bool Contains(string bookPath)
+        public bool Contains(string bookPath)
         {
             lock (_paths)
             {
@@ -131,7 +142,7 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="guid"></param>
         /// <returns></returns>
-        public static Book GetBook(string id)
+        public Book GetBook(string id)
         {
             lock (_books)
             {
@@ -148,7 +159,7 @@ namespace TinyOPDS.Data
         /// Add unique book descriptor to the library and saves the library
         /// </summary>
         /// <param name="book"></param>
-        public static bool Add(Book book)
+        public bool Add(Book book)
         {
             lock (_books)
             {
@@ -187,15 +198,15 @@ namespace TinyOPDS.Data
         /// Delete all books with specific file path from the library
         /// </summary>
         /// <param name="pathName"></param>
-        public static bool Delete(string fileName)
+        public bool Delete(string fileName)
         {
             bool result = false;
             lock (_books)
             {
-                if (!string.IsNullOrEmpty(fileName) && fileName.Length > Library.LibraryPath.Length + 1)
+                if (!string.IsNullOrEmpty(fileName) && fileName.Length > Library.Current.LibraryPath.Length + 1)
                 {
                     // Extract relative file name
-                    fileName = fileName.Substring(Library.LibraryPath.Length + 1);
+                    fileName = fileName.Substring(Library.Current.LibraryPath.Length + 1);
                     string ext = Path.GetExtension(fileName.ToLower());
 
                     // Assume it's a single file
@@ -237,7 +248,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Total number of books in library
         /// </summary>
-        public static int Count
+        public int Count
         {
             get
             {
@@ -248,17 +259,17 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Returns FB2 books count
         /// </summary>
-        public static int FB2Count { get; private set; }
+        public int FB2Count { get; private set; }
 
         /// <summary>
         /// Returns EPUB books count
         /// </summary>
-        public static int EPUBCount { get; private set; }
+        public int EPUBCount { get; private set; }
 
         /// <summary>
         /// Returns list of the books titles sorted in alphabetical order
         /// </summary>
-        public static List<string> Titles
+        public List<string> Titles
         {
             get
             {
@@ -272,7 +283,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Returns list of the authors sorted in alphabetical order 
         /// </summary>
-        public static List<string> Authors
+        public List<string> Authors
         {
             get
             {
@@ -286,7 +297,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Returns list of the library books series sorted in alphabetical order
         /// </summary>
-        public static List<string> Sequences
+        public List<string> Sequences
         {
             get
             {
@@ -300,7 +311,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// All genres supported by fb2 format
         /// </summary>
-        public static List<Genre> FB2Genres
+        public List<Genre> FB2Genres
         {
             get
             {
@@ -308,7 +319,7 @@ namespace TinyOPDS.Data
             }
         }
 
-        public static Dictionary<string, string> SoundexedGenres
+        public Dictionary<string, string> SoundexedGenres
         {
             get
             {
@@ -319,7 +330,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Returns sorted in alphabetical order list of library books genres
         /// </summary>
-        public static List<Genre> Genres
+        public List<Genre> Genres
         {
             get
             {
@@ -336,7 +347,7 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public static List<string> GetAuthorsByName(string name, bool isOpenSearch)
+        public List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
             List<string> authors = new List<string>();
             lock (_books)
@@ -357,7 +368,7 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="title"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksByTitle(string title)
+        public List<Book> GetBooksByTitle(string title)
         {
             lock (_books) return _books.Values.Where(b => b.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0 || b.Sequence.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
         }
@@ -367,7 +378,7 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksByAuthor(string author)
+        public List<Book> GetBooksByAuthor(string author)
         {
             lock (_books) return _books.Values.Where(b => b.Authors.Contains(author)).ToList();
         }
@@ -377,7 +388,7 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksBySequence(string sequence)
+        public List<Book> GetBooksBySequence(string sequence)
         {
             lock (_books) return _books.Values.Where(b => b.Sequence.Contains(sequence)).ToList();
         }
@@ -387,7 +398,7 @@ namespace TinyOPDS.Data
         /// </summary>
         /// <param name="author"></param>
         /// <returns></returns>
-        public static List<Book> GetBooksByGenre(string genre)
+        public List<Book> GetBooksByGenre(string genre)
         {
             lock (_books) return _books.Values.Where(b => b.Genres.Contains(genre)).ToList();
         }
@@ -397,7 +408,7 @@ namespace TinyOPDS.Data
         /// <summary>
         /// Load library
         /// </summary>
-        public static void Load()
+        public void Load()
         {
             int numRecords = 0;
             DateTime start = DateTime.Now;
@@ -496,7 +507,7 @@ namespace TinyOPDS.Data
         /// Save whole library
         /// </summary>
         /// Remark: new database format is used!
-        public static void Save()
+        public void Save()
         {
             // Do nothing if we have no records
             if (_books.Count == 0) return;
@@ -539,7 +550,7 @@ namespace TinyOPDS.Data
         /// Append one book descriptor to the library file
         /// </summary>
         /// <param name="book"></param>
-        public static void Append(Book book)
+        public void Append(Book book)
         {
             Stream fileStream = null;
             try

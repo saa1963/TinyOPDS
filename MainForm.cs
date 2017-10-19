@@ -97,16 +97,16 @@ namespace TinyOPDS
             bs.CurrentItemChanged += bs_CurrentItemChanged;
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
-            Library.LibraryPath = Properties.Settings.Default.LibraryPath;
-            Library.LibraryLoaded += (_, __) => 
+            Library.Current.LibraryPath = Properties.Settings.Default.LibraryPath;
+            Library.Current.LibraryLoaded += (_, __) => 
             { 
                 UpdateInfo();
-                _watcher.DirectoryToWatch = Library.LibraryPath;
+                _watcher.DirectoryToWatch = Library.Current.LibraryPath;
                 _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
             };
 
             // Create file watcher
-            _watcher = new Watcher(Library.LibraryPath);
+            _watcher = new Watcher(Library.Current.LibraryPath);
             _watcher.OnBookAdded += (object sender, BookAddedEventArgs e) => 
                 {
                     if (e.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
@@ -288,16 +288,16 @@ namespace TinyOPDS
         private void libraryPath_Validated(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath) && 
-                !Library.LibraryPath.Equals(Properties.Settings.Default.LibraryPath) &&
+                !Library.Current.LibraryPath.Equals(Properties.Settings.Default.LibraryPath) &&
                 Directory.Exists(Properties.Settings.Default.LibraryPath))
             {
-                if (Library.IsChanged) Library.Save();
-                Library.LibraryPath = Properties.Settings.Default.LibraryPath;
+                if (Library.Current.IsChanged) Library.Current.Save();
+                Library.Current.LibraryPath = Properties.Settings.Default.LibraryPath;
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
                 _watcher.IsEnabled = false;
                 // Reload library
-                Library.LoadAsync();
+                Library.Current.LoadAsync();
             }
             else libraryPath.Undo();
         }
@@ -336,7 +336,7 @@ namespace TinyOPDS
                 };
                 _scanner.OnScanCompleted += (_, __) => 
                 {
-                    Library.Save();
+                    Library.Current.Save();
                     UpdateInfo(true);
 
                     Log.WriteLine("Directory scanner completed");
@@ -352,7 +352,7 @@ namespace TinyOPDS
             else
             {
                 _scanner.Stop();
-                Library.Save();
+                Library.Current.Save();
                 UpdateInfo(true);
                 scannerButton.Text = Localizer.Text("Start scanning");
 
@@ -362,12 +362,12 @@ namespace TinyOPDS
 
         void scanner_OnBookFound(object sender, BookFoundEventArgs e)
         {
-            if (Library.Add(e.Book))
+            if (Library.Current.Add(e.Book))
             {
                 if (e.Book.BookType == BookType.FB2) _fb2Count++; else _epubCount++;
             }
             else _duplicates++;
-            if (Library.Count % 500 == 0) Library.Save();
+            if (Library.Current.Count % 500 == 0) Library.Current.Save();
             UpdateInfo();
         }
 
@@ -379,7 +379,7 @@ namespace TinyOPDS
 
         private void internalUpdateInfo(bool IsScanFinished)
         {
-            booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", Library.Count, Library.FB2Count,  Library.EPUBCount);
+            booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", Library.Current.Count, Library.Current.FB2Count,  Library.Current.EPUBCount);
             booksFound.Text = string.Format("fb2: {0}   epub: {1}", _fb2Count, _epubCount);
             skippedBooks.Text = _skippedFiles.ToString();
             invalidBooks.Text = _invalidFiles.ToString();
@@ -556,7 +556,7 @@ namespace TinyOPDS
             }
 
             if (_scanner.Status == FileScannerStatus.SCANNING) _scanner.Stop();
-            if (Library.IsChanged) Library.Save();
+            if (Library.Current.IsChanged) Library.Current.Save();
 
             if (_upnpController != null)
             {

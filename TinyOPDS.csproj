@@ -133,6 +133,7 @@
     <Compile Include="Data\Book.cs" />
     <Compile Include="Data\CoverImage.cs" />
     <Compile Include="Data\Genre.cs" />
+    <Compile Include="Data\ILibrary.cs" />
     <Compile Include="Data\ImagesCache.cs" />
     <Compile Include="Data\Library.cs" />
     <None Include="Libs\gzip.cs" />

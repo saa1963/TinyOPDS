@@ -41,7 +41,7 @@ namespace TinyOPDS.OPDS
                 );
 
             // Get all authors names starting with searchPattern
-            List<string> Sequences = (from s in Library.Sequences where s.StartsWith(searchPattern) && s.Length > searchPattern.Length + 1 select s).ToList();
+            List<string> Sequences = (from s in Library.Current.Sequences where s.StartsWith(searchPattern) && s.Length > searchPattern.Length + 1 select s).ToList();
 
             if (Sequences.Count > threshold)
             {
@@ -71,7 +71,7 @@ namespace TinyOPDS.OPDS
                 // Add catalog entries
                 foreach (string sequence in sequences)
                 {
-                    var seriesCount = Library.GetBooksBySequence(sequence).Count;
+                    var seriesCount = Library.Current.GetBooksBySequence(sequence).Count;
 
                     doc.Root.Add(
                         new XElement("entry",

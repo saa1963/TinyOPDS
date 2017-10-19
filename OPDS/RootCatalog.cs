@@ -52,14 +52,14 @@ namespace TinyOPDS.OPDS
                               new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                               new XElement("id", "tag:root:authors"),
                               new XElement("title", Localizer.Text("By authors"), new XAttribute("type", "text")),
-                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), Library.Count, Library.Authors.Count), new XAttribute("type", "text")),
+                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} authors"), Library.Current.Count, Library.Current.Authors.Count), new XAttribute("type", "text")),
                               new XElement("link", new XAttribute("href", "/authorsindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                               ),
                           new XElement("entry",
                               new XElement("updated", DateTime.UtcNow.ToUniversalTime()),
                               new XElement("id", "tag:root:sequences"),
                               new XElement("title", Localizer.Text("By series"), new XAttribute("type", "text")),
-                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), Library.Count, Library.Sequences.Count), new XAttribute("type", "text")),
+                              new XElement("content", string.Format(Localizer.Text("{0} books by {1} series"), Library.Current.Count, Library.Current.Sequences.Count), new XAttribute("type", "text")),
                               new XElement("link", new XAttribute("href", "/sequencesindex"), new XAttribute("type", "application/atom+xml;profile=opds-catalog"))
                               ),
                           new XElement("entry",
