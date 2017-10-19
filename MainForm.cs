@@ -27,6 +27,7 @@ using TinyOPDS.Scanner;
 using TinyOPDS.OPDS;
 using TinyOPDS.Server;
 using UPnP;
+using TinyOPDS.Properties;
 
 namespace TinyOPDS
 {
@@ -98,12 +99,8 @@ namespace TinyOPDS
             foreach (DataGridViewColumn col in dataGridView1.Columns) col.Width = 180;
 
             LibraryFactory.GetLibrary().LibraryPath = Properties.Settings.Default.LibraryPath;
-            LibraryFactory.GetLibrary().LibraryLoaded += (_, __) => 
-            { 
-                UpdateInfo();
-                _watcher.DirectoryToWatch = LibraryFactory.GetLibrary().LibraryPath;
-                _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
-            };
+            LibraryFactory.GetLibrary().LibraryLoaded += MainForm_LibraryLoaded;
+            
 
             // Create file watcher
             _watcher = new Watcher(LibraryFactory.GetLibrary().LibraryPath);
@@ -131,6 +128,13 @@ namespace TinyOPDS
                 };
             _watcher.IsEnabled = false;
 
+            if (Settings.Default.LibraryKind == 1)
+            {
+                MainForm_LibraryLoaded(null, null);
+                useWatcher.Enabled = false;
+                scannerButton.Enabled = false;
+            }
+
             intLink.Text = string.Format(urlTemplate, _upnpController.LocalIP.ToString(), Properties.Settings.Default.ServerPort, Properties.Settings.Default.RootPrefix);
             _upnpController.DiscoverCompleted += _upnpController_DiscoverCompleted;
             _upnpController.DiscoverAsync(Properties.Settings.Default.UseUPnP);
@@ -157,6 +161,13 @@ namespace TinyOPDS
 
             _scanStartTime = DateTime.Now;
             _notifyIcon.Visible = Properties.Settings.Default.CloseToTray;
+        }
+
+        private void MainForm_LibraryLoaded(object sender, EventArgs e)
+        {
+            UpdateInfo();
+            _watcher.DirectoryToWatch = LibraryFactory.GetLibrary().LibraryPath;
+            _watcher.IsEnabled = Properties.Settings.Default.WatchLibrary;
         }
 
         /// <summary>
@@ -198,7 +209,7 @@ namespace TinyOPDS
             linkLabel5.Links.Add(0, linkLabel5.Text.Length, "http://epubreader.codeplex.com/");
             linkLabel4.Links.Add(0, linkLabel4.Text.Length, "http://dotnetzip.codeplex.com/");
             // Setup settings controls
-            if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath))
+            if (!string.IsNullOrEmpty(Properties.Settings.Default.LibraryPath) && Settings.Default.LibraryKind == 0)
             {
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
             }
@@ -294,7 +305,8 @@ namespace TinyOPDS
                 if (LibraryFactory.GetLibrary().IsChanged) LibraryFactory.GetLibrary().Save();
                 LibraryFactory.GetLibrary().LibraryPath = Properties.Settings.Default.LibraryPath;
                 booksInDB.Text = string.Format("{0}       fb2: {1}      epub: {2}", 0, 0, 0);
-                databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
+                if (Settings.Default.LibraryKind == 0)
+                    databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
                 _watcher.IsEnabled = false;
                 // Reload library
                 LibraryFactory.GetLibrary().LoadAsync();
