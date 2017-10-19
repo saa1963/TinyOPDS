@@ -197,7 +197,7 @@ namespace TinyOPDS.Server
                     try
                     {
                         memStream = new MemoryStream();
-                        Book book = Library.Current.GetBook(request.Substring(1, request.IndexOf('/', 1) - 1));
+                        Book book = LibraryFactory.GetLibrary().GetBook(request.Substring(1, request.IndexOf('/', 1) - 1));
 
                         if (book.FilePath.ToLower().Contains(".zip@"))
                         {
@@ -247,7 +247,7 @@ namespace TinyOPDS.Server
                     try
                     {
                         memStream = new MemoryStream();
-                        Book book = Library.Current.GetBook(request.Substring(1, request.IndexOf('/', 1) - 1));
+                        Book book = LibraryFactory.GetLibrary().GetBook(request.Substring(1, request.IndexOf('/', 1) - 1));
 
                         if (book.FilePath.ToLower().Contains(".zip@"))
                         {
@@ -349,7 +349,7 @@ namespace TinyOPDS.Server
                     if (!string.IsNullOrEmpty(bookID))
                     {
                         CoverImage image = null;
-                        Book book = Library.Current.GetBook(bookID);
+                        Book book = LibraryFactory.GetLibrary().GetBook(bookID);
 
                         if (book != null)
                         {

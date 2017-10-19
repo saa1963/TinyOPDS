@@ -50,7 +50,7 @@ namespace TinyOPDS.Scanner
             _scanner = new FileScanner(false);
             _scanner.OnBookFound += (object s, BookFoundEventArgs be) =>
             {
-                if (Library.Current.Add(be.Book))
+                if (LibraryFactory.GetLibrary().Add(be.Book))
                 {
                     //Library.Append(be.Book);
                     if (OnBookAdded != null) OnBookAdded(this, new BookAddedEventArgs(be.Book.FileName));
@@ -172,7 +172,7 @@ namespace TinyOPDS.Scanner
                 else if (_deletedBooks.Count > 0)
                 {
                     fileName = _deletedBooks.First();
-                    if (Library.Current.Delete(fileName))
+                    if (LibraryFactory.GetLibrary().Delete(fileName))
                     {
                         if (OnBookDeleted != null) OnBookDeleted(this, new BookDeletedEventArgs(fileName));
                     }

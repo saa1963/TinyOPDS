@@ -110,26 +110,26 @@ namespace TinyOPDS.OPDS
             switch (searchFor)
             {
                 case SearchFor.Author:
-                    books = Library.Current.GetBooksByAuthor(searchPattern);
+                    books = LibraryFactory.GetLibrary().GetBooksByAuthor(searchPattern);
                     catalogType = "/author/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Sequence:
-                    books = Library.Current.GetBooksBySequence(searchPattern);
+                    books = LibraryFactory.GetLibrary().GetBooksBySequence(searchPattern);
                     catalogType = "/sequence/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Genre:
-                    books = Library.Current.GetBooksByGenre(searchPattern);
+                    books = LibraryFactory.GetLibrary().GetBooksByGenre(searchPattern);
                     catalogType = "/genre/" + Uri.EscapeDataString(searchPattern);
                     break;
                 case SearchFor.Title:
-                    books = Library.Current.GetBooksByTitle(searchPattern);
+                    books = LibraryFactory.GetLibrary().GetBooksByTitle(searchPattern);
                     // For search, also return books by 
                     if (threshold > 50)
                     {
                         string translit = Transliteration.Back(searchPattern, TransliterationType.GOST);
                         if (!string.IsNullOrEmpty(translit))
                         {
-                            List<Book> transTitles = Library.Current.GetBooksByTitle(translit);
+                            List<Book> transTitles = LibraryFactory.GetLibrary().GetBooksByTitle(translit);
                             if (transTitles.Count > 0) books.AddRange(transTitles);
                         }
                     }
@@ -173,7 +173,7 @@ namespace TinyOPDS.OPDS
 
             bool useCyrillic = Localizer.Language.Equals("ru");
 
-            List<Genre> genres = Library.Current.Genres;
+            List<Genre> genres = LibraryFactory.GetLibrary().Genres;
 
             // Add catalog entries
             for (int i = startIndex; i < endIndex; i++)

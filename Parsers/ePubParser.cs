@@ -97,7 +97,7 @@ namespace TinyOPDS.Parsers
             {
                 foreach (string subj in subjects)
                 {
-                    var genre = Library.Current.SoundexedGenres.Where(g => g.Key.StartsWith(subj.SoundexByWord()) && g.Key.WordsCount() <= subj.WordsCount()+1).FirstOrDefault();
+                    var genre = LibraryFactory.GetLibrary().SoundexedGenres.Where(g => g.Key.StartsWith(subj.SoundexByWord()) && g.Key.WordsCount() <= subj.WordsCount()+1).FirstOrDefault();
                     if (genre.Key != null) genres.Add(genre.Value);
                 }
                 if (genres.Count < 1) genres.Add("prose");

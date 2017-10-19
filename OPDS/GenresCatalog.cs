@@ -43,18 +43,18 @@ namespace TinyOPDS.OPDS
             bool topLevel = true;
             bool useCyrillic = Localizer.Language.Equals("ru");
 
-            List<Genre> libGenres = Library.Current.Genres;
+            List<Genre> libGenres = LibraryFactory.GetLibrary().Genres;
             List<Genre> genres = null;
 
             // Is it top level (main genres)?
             if (string.IsNullOrEmpty(searchPattern))
             {
-                genres = (from g in Library.Current.FB2Genres from sg in g.Subgenres where libGenres.Contains(sg) select g).Distinct().ToList();
+                genres = (from g in LibraryFactory.GetLibrary().FB2Genres from sg in g.Subgenres where libGenres.Contains(sg) select g).Distinct().ToList();
             }
             // Is it a second level (subgenres)?
             else
             {
-                Genre genre = Library.Current.FB2Genres.Where(g => g.Name.Equals(searchPattern) || g.Translation.Equals(searchPattern)).FirstOrDefault();
+                Genre genre = LibraryFactory.GetLibrary().FB2Genres.Where(g => g.Name.Equals(searchPattern) || g.Translation.Equals(searchPattern)).FirstOrDefault();
                 if (genre != null)
                 {
                     genres = (from g in libGenres where genre.Subgenres.Contains(g) select g).Distinct().ToList();

@@ -23,7 +23,6 @@ namespace TinyOPDS.Data
 {
     public class Library : ILibrary
     {
-        static Library _library = null;
         public event EventHandler LibraryLoaded;
         private Dictionary<string, string> _paths = new Dictionary<string, string>();
         private Dictionary<string, Book> _books = new Dictionary<string, Book>();
@@ -32,21 +31,11 @@ namespace TinyOPDS.Data
         private Dictionary<string, string> _soundexedGenres;
         private bool _converted = false;
 
-        public static Library Current
-        {
-            get
-            {
-                if (_library == null)
-                    _library = new Library();
-                return _library;
-            }
-        }
-
         /// <summary>
         /// Default constructor
         /// Opens library"books.db" from the executable file location
         /// </summary>
-        Library()
+        public Library()
         {
             LoadAsync();
 
@@ -203,10 +192,10 @@ namespace TinyOPDS.Data
             bool result = false;
             lock (_books)
             {
-                if (!string.IsNullOrEmpty(fileName) && fileName.Length > Library.Current.LibraryPath.Length + 1)
+                if (!string.IsNullOrEmpty(fileName) && fileName.Length > LibraryFactory.GetLibrary().LibraryPath.Length + 1)
                 {
                     // Extract relative file name
-                    fileName = fileName.Substring(Library.Current.LibraryPath.Length + 1);
+                    fileName = fileName.Substring(LibraryFactory.GetLibrary().LibraryPath.Length + 1);
                     string ext = Path.GetExtension(fileName.ToLower());
 
                     // Assume it's a single file

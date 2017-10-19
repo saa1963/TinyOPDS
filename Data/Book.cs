@@ -37,9 +37,9 @@ namespace TinyOPDS.Data
         {
             Version = 1;
             FileName = fileName;
-            if (!string.IsNullOrEmpty(FileName) && FileName.IndexOf(Library.Current.LibraryPath)==0)
+            if (!string.IsNullOrEmpty(FileName) && FileName.IndexOf(LibraryFactory.GetLibrary().LibraryPath)==0)
             {
-                FileName = FileName.Substring(Library.Current.LibraryPath.Length+1);
+                FileName = FileName.Substring(LibraryFactory.GetLibrary().LibraryPath.Length+1);
             }
             Title = Sequence = Annotation = Language = string.Empty;
             HasCover = false;
@@ -62,7 +62,7 @@ namespace TinyOPDS.Data
         }
         public float Version { get; set; }
         public string FileName { get; private set; }
-        public string FilePath { get { return Path.Combine(Library.Current.LibraryPath, FileName); } }
+        public string FilePath { get { return Path.Combine(LibraryFactory.GetLibrary().LibraryPath, FileName); } }
         public string Title { get; set; }
         public string Language { get; set; }
         public bool HasCover { get; set; }

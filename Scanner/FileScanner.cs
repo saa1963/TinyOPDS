@@ -122,7 +122,7 @@ namespace TinyOPDS.Scanner
             // Process accepted files
             try
             {
-                if (Library.Current.Contains(fullName.Substring(Library.Current.LibraryPath.Length + 1)))
+                if (LibraryFactory.GetLibrary().Contains(fullName.Substring(LibraryFactory.GetLibrary().LibraryPath.Length + 1)))
                 {
                     SkippedFiles++;
                     if (OnFileSkipped != null) OnFileSkipped(this, new FileSkippedEventArgs(SkippedFiles));
