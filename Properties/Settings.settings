@@ -60,7 +60,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="UpdatesCheck" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
+      <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="LastCheck" Type="System.DateTime" Scope="User">
       <Value Profile="(Default)">2013-01-01</Value>
@@ -75,7 +75,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="LibraryKind" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
+      <Value Profile="(Default)">0</Value>
     </Setting>
   </Settings>
 </SettingsFile>

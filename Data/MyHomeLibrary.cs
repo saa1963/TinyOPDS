@@ -11,6 +11,7 @@ namespace TinyOPDS.Data
 {
     public class MyHomeLibrary : ILibrary
     {
+        Object objectLock = new object();
         private string ConnectionString;
         public MyHomeLibrary()
         {
@@ -87,75 +88,144 @@ namespace TinyOPDS.Data
             }
         }
 
+        private List<string> _titles = null;
         public List<string> Titles
         {
             get
             {
-                //lock (_books)
-                //{
-                //    return _books.Values.Select(b => b.Title).Distinct().OrderBy(a => a, new OPDSComparer(Localizer.Language.Equals("ru"))).ToList();
-                //}
-                var lst = new List<string>();
-                using (var cn = new SQLiteConnection(ConnectionString))
+                if (_titles == null)
                 {
-                    if (cn.State != ConnectionState.Open) cn.Open();
-                    using (var dr = new SQLiteCommand("select distinct Title from Books order by Title", cn).ExecuteReader())
+                    _titles = new List<string>();
+                    using (var cn = new SQLiteConnection(ConnectionString))
                     {
-                        while (dr.Read())
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        using (var dr = new SQLiteCommand("select distinct Title from Books order by Title", cn).ExecuteReader())
                         {
-                            lst.Add(dr[0].ToString());
+                            while (dr.Read())
+                            {
+                                _titles.Add(dr[0].ToString());
+                            }
                         }
                     }
-                    return lst;
                 }
+                return _titles;
             }
         }
 
+        private List<string> _authors = null;
         public List<string> Authors
         {
             get
             {
-                var lst = new List<string>();
-                using (var cn = new SQLiteConnection(ConnectionString))
+                if (_authors == null)
                 {
-                    if (cn.State != ConnectionState.Open) cn.Open();
-                    using (var dr = new SQLiteCommand("select distinct SearchName from Authors order by SearchName", cn).ExecuteReader())
+                    _authors = new List<string>();
+                    using (var cn = new SQLiteConnection(ConnectionString))
                     {
-                        while (dr.Read())
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        using (var dr = new SQLiteCommand("select distinct SearchName from Authors order by SearchName", cn).ExecuteReader())
                         {
-                            lst.Add(dr[0].ToString());
+                            while (dr.Read())
+                            {
+                                _authors.Add(dr[0].ToString());
+                            }
                         }
                     }
-                    return lst;
                 }
+                return _authors;
             }
         }
 
+        private List<string> _sequences = null;
         public List<string> Sequences
         {
             get
             {
-                var lst = new List<string>();
-                using (var cn = new SQLiteConnection(ConnectionString))
+                if (_sequences == null)
                 {
-                    if (cn.State != ConnectionState.Open) cn.Open();
-                    using (var dr = new SQLiteCommand("select distinct SeriesTitle from Series order by SeriesTitle", cn).ExecuteReader())
+                    _sequences = new List<string>();
+                    using (var cn = new SQLiteConnection(ConnectionString))
                     {
-                        while (dr.Read())
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        using (var dr = new SQLiteCommand("select distinct SeriesTitle from Series order by SeriesTitle", cn).ExecuteReader())
                         {
-                            lst.Add(dr[0].ToString());
+                            while (dr.Read())
+                            {
+                                _sequences.Add(dr[0].ToString());
+                            }
                         }
                     }
-                    return lst;
                 }
+                return _sequences;
             }
         }
 
-        public List<Genre> FB2Genres { get { throw new NotImplementedException(); } }
+        private List<Genre> _genres = null;
+        public List<Genre> FB2Genres
+        {
+            get
+            {
+                if (_genres == null)
+                {
+                    _genres = new List<Genre>();
+                    using (var cn = new SQLiteConnection(ConnectionString))
+                    {
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        using (var dr = new SQLiteCommand("select * from Genres where ParentCode = '0' order by GenreCode", cn).ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                var g = new Genre();
+                                g.Name = dr["GenreAlias"].ToString();
+                                g.Translation = dr["GenreAlias"].ToString();
+                                using (var dr1 = new SQLiteCommand("select * from Genres where ParentCode = '" +
+                                    dr["GenreCode"].ToString() + "' order by GenreCode", cn).ExecuteReader())
+                                {
+                                    while (dr1.Read())
+                                    {
+                                        var g1 = new Genre();
+                                        g1.Name = dr1["GenreAlias"].ToString();
+                                        g1.Translation = dr1["GenreAlias"].ToString();
+                                        g1.Tag = dr1["FB2Code"].ToString();
+                                        g.Subgenres.Add(g1);
+                                    }
+                                }
+                                _genres.Add(g);
+                            }
+                        }
+                    }
+                }
+                return _genres;
+            }
+        }
 
-        public Dictionary<string, string> SoundexedGenres { get { throw new NotImplementedException(); } }
+        private Dictionary<string, string> _soundexedGenres = null;
+        public Dictionary<string, string> SoundexedGenres
+        {
+            get
+            {
+                if (_soundexedGenres == null)
+                {
+                    _soundexedGenres = new Dictionary<string, string>();
+                    foreach (Genre genre in FB2Genres)
+                        foreach (Genre subgenre in genre.Subgenres)
+                        {
+                            _soundexedGenres[subgenre.Name.SoundexByWord()] = subgenre.Tag;
+                            string reversed = string.Join(" ", subgenre.Name.Split(' ', ',').Reverse()).Trim();
+                            _soundexedGenres[reversed.SoundexByWord()] = subgenre.Tag;
+                        }
+                }
+                return _soundexedGenres;
+            }
+        }
 
-        public List<Genre> Genres { get { throw new NotImplementedException(); } }
+        public List<Genre> Genres
+        {
+            get
+            {
+                return FB2Genres.SelectMany(g => g.Subgenres).OrderBy(s => s.Translation).ToList();
+            }
+        }
 
         public event EventHandler LibraryLoaded;
 
@@ -181,12 +251,29 @@ namespace TinyOPDS.Data
 
         public List<string> GetAuthorsByName(string name, bool isOpenSearch)
         {
-            throw new NotImplementedException();
+            List<string> authors = new List<string>();
+            lock (objectLock)
+            {
+                if (isOpenSearch) authors = Authors.Where(a => a.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                else authors = Authors.Where(a => a.StartsWith(name, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (isOpenSearch && authors.Count == 0)
+                {
+                    string reversedName = name.Reverse();
+                    authors = Authors.Where(a => a.IndexOf(reversedName, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                }
+                return authors;
+            }
         }
 
         public Book GetBook(string id)
         {
-            throw new NotImplementedException();
+            //using (var cn = new SQLiteConnection(ConnectionString))
+            //{
+            //    if (cn.State != ConnectionState.Open) cn.Open();
+            //    var o = new SQLiteCommand("select * from Books where BookID = ", cn).ExecuteScalar();
+            //    return (int)(long)o;
+            //}
+            return new Book();
         }
 
         public List<Book> GetBooksByAuthor(string author)

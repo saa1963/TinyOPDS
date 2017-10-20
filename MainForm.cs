@@ -516,7 +516,8 @@ namespace TinyOPDS
                     _upnpController.DeleteForwardingRule(port, System.Net.Sockets.ProtocolType.Tcp);
                     _upnpController.ForwardPort(port, System.Net.Sockets.ProtocolType.Tcp, "TinyOPDS server");
                 }
-                RestartHttpServer();
+                if (_server != null)
+                    RestartHttpServer();
             }
         }
 
