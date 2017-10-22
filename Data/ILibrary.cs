@@ -26,6 +26,7 @@ namespace TinyOPDS.Data
         List<Genre> Genres { get; }
         List<string> GetAuthorsByName(string name, bool isOpenSearch);
         List<Book> GetBooksByTitle(string title);
+        int GetBooksByAuthorCount(string author);
         List<Book> GetBooksByAuthor(string author);
         List<Book> GetBooksBySequence(string sequence);
         List<Book> GetBooksByGenre(string genre);

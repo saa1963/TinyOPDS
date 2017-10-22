@@ -372,6 +372,11 @@ namespace TinyOPDS.Data
             lock (_books) return _books.Values.Where(b => b.Authors.Contains(author)).ToList();
         }
 
+        public int GetBooksByAuthorCount(string author)
+        {
+            lock (_books) return _books.Values.Where(b => b.Authors.Contains(author)).Count();
+        }
+
         /// <summary>
         /// Return books by selected sequence
         /// </summary>

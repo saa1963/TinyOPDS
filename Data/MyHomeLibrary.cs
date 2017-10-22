@@ -276,9 +276,65 @@ namespace TinyOPDS.Data
             return new Book();
         }
 
+        public int GetBooksByAuthorCount(string author)
+        {
+            using (var cn = new SQLiteConnection(ConnectionString))
+            {
+                if (cn.State != ConnectionState.Open) cn.Open();
+                var rt = (int)(long)new SQLiteCommand("select count(*) from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where a.SearchName like '" + author + "%'", cn).ExecuteScalar();
+                return rt;
+            }
+        }
+
+
+
         public List<Book> GetBooksByAuthor(string author)
         {
-            throw new NotImplementedException();
+            var lst = new List<Book>();
+            using (var cn = new SQLiteConnection(ConnectionString))
+            {
+                if (cn.State != ConnectionState.Open) cn.Open();
+                using (var dr = new SQLiteCommand(
+                    "select b.* from Author_List al inner join Authors a on al.AuthorID = a.AuthorID inner join Books b on al.BookID = b.BookID where a.SearchName like '" 
+                        + author + "%' order by b.Title", cn).ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        //var o = new Book(dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString());
+                        //o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
+                        //o.Annotation = dr["Annotation"].ToString();
+                        //o.BookDate = DateTime.MinValue;
+                        //o.ID = Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
+                        //o.Title = dr["Title"].ToString();
+                        //o.Language = dr["Lang"].ToString();
+                        //o.HasCover = false;
+                        //o.DocumentDate = DateTime.MinValue;
+                        //if (!(dr["SeriesID"] is DBNull))
+                        //    o.Sequence = dr["SeriesID"].ToString();
+                        //else
+                        //    o.Sequence = null;
+                        //if (!(dr["SeqNumber"] is DBNull))
+                        //    o.NumberInSequence = (uint)(long)dr["SeqNumber"];
+                        //else
+                        //    o.NumberInSequence = 0;
+                        //o.DocumentSize = (uint)(long)dr["BookSize"];
+                        //var _id = (long)dr["BookID"];
+                        //using (var dr1 = new SQLiteCommand("", cn).ExecuteReader())
+                        //{
+
+                        //}
+                    }
+                }
+            }
+            return lst;
+        }
+
+        private DateTime ConvertDate(string s)
+        {
+            if (!String.IsNullOrWhiteSpace(s))
+                return new DateTime(Int32.Parse(s.Substring(0, 4)), Int32.Parse(s.Substring(5, 2)), Int32.Parse(s.Substring(8, 2)));
+            else
+                return DateTime.MinValue;
         }
 
         public List<Book> GetBooksByGenre(string genre)

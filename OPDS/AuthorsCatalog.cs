@@ -93,7 +93,7 @@ namespace TinyOPDS.OPDS
                 // Add catalog entries
                 foreach (string author in Authors)
                 {
-                    var booksCount = LibraryFactory.GetLibrary().GetBooksByAuthor(author).Count;
+                    var booksCount = LibraryFactory.GetLibrary().GetBooksByAuthorCount(author);
 
                     doc.Root.Add(
                         new XElement("entry",
