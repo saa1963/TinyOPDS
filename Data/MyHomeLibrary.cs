@@ -273,7 +273,8 @@ namespace TinyOPDS.Data
             //    var o = new SQLiteCommand("select * from Books where BookID = ", cn).ExecuteScalar();
             //    return (int)(long)o;
             //}
-            return new Book();
+
+            return _lst[id];
         }
 
         public int GetBooksByAuthorCount(string author)
@@ -287,7 +288,7 @@ namespace TinyOPDS.Data
         }
 
 
-
+        Dictionary<string, Book> _lst = new Dictionary<string, Book>();
         public List<Book> GetBooksByAuthor(string author)
         {
             var lst = new List<Book>();
@@ -296,33 +297,46 @@ namespace TinyOPDS.Data
                 if (cn.State != ConnectionState.Open) cn.Open();
                 using (var dr = new SQLiteCommand(
                     "select b.* from Author_List al inner join Authors a on al.AuthorID = a.AuthorID inner join Books b on al.BookID = b.BookID where a.SearchName like '" 
-                        + author + "%' order by b.Title", cn).ExecuteReader())
+                        + author + "%' collate NOCASE", cn).ExecuteReader())
                 {
                     while (dr.Read())
                     {
-                        //var o = new Book(dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString());
-                        //o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
-                        //o.Annotation = dr["Annotation"].ToString();
-                        //o.BookDate = DateTime.MinValue;
-                        //o.ID = Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
-                        //o.Title = dr["Title"].ToString();
-                        //o.Language = dr["Lang"].ToString();
-                        //o.HasCover = false;
-                        //o.DocumentDate = DateTime.MinValue;
-                        //if (!(dr["SeriesID"] is DBNull))
-                        //    o.Sequence = dr["SeriesID"].ToString();
-                        //else
-                        //    o.Sequence = null;
-                        //if (!(dr["SeqNumber"] is DBNull))
-                        //    o.NumberInSequence = (uint)(long)dr["SeqNumber"];
-                        //else
-                        //    o.NumberInSequence = 0;
-                        //o.DocumentSize = (uint)(long)dr["BookSize"];
-                        //var _id = (long)dr["BookID"];
-                        //using (var dr1 = new SQLiteCommand("", cn).ExecuteReader())
-                        //{
-
-                        //}
+                        var _id = dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
+                        var o = new Book(_id);
+                        o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
+                        o.Annotation = dr["Annotation"].ToString();
+                        o.BookDate = DateTime.MinValue;
+                        o.ID = _id; //Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
+                        o.Title = dr["Title"].ToString();
+                        o.Language = dr["Lang"].ToString();
+                        o.HasCover = false;
+                        o.DocumentDate = DateTime.MinValue;
+                        if (!(dr["SeriesID"] is DBNull))
+                            o.Sequence = dr["SeriesID"].ToString();
+                        else
+                            o.Sequence = null;
+                        if (!(dr["SeqNumber"] is DBNull))
+                            o.NumberInSequence = (uint)(long)dr["SeqNumber"];
+                        else
+                            o.NumberInSequence = 0;
+                        o.DocumentSize = (uint)(long)dr["BookSize"];
+                        using (var dr1 = new SQLiteCommand("select * from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = " + dr["BookID"].ToString() + "  collate NOCASE", cn).ExecuteReader())
+                        {
+                            while (dr1.Read())
+                            {
+                                o.Authors.Add(dr1["SearchName"].ToString());
+                            }
+                        }
+                        using (var dr1 = new SQLiteCommand("select * from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = " + dr["BookID"].ToString() + "  collate NOCASE", cn).ExecuteReader())
+                        {
+                            while (dr1.Read())
+                            {
+                                o.Genres.Add(dr1["GenreAlias"].ToString());
+                            }
+                        }
+                        lst.Add(o);
+                        if (!_lst.ContainsKey(_id))
+                            _lst.Add(_id, o);
                     }
                 }
             }
