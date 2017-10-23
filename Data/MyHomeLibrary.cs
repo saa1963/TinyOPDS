@@ -291,6 +291,7 @@ namespace TinyOPDS.Data
         Dictionary<string, Book> _lst = new Dictionary<string, Book>();
         public List<Book> GetBooksByAuthor(string author)
         {
+            _lst.Clear();
             var lst = new List<Book>();
             using (var cn = new SQLiteConnection(ConnectionString))
             {
@@ -353,7 +354,67 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByGenre(string genre)
         {
-            throw new NotImplementedException();
+            _lst.Clear();
+            var lst = new List<Book>();
+            using (var cn = new SQLiteConnection(ConnectionString))
+            {
+                if (cn.State != ConnectionState.Open) cn.Open();
+                using (var dr = new SQLiteCommand(
+                    "select b.*, g.GenreAlias, a.SearchName from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode inner join Books b on gl.BookID = b.BookID " +
+                        "inner join Author_List al on b.BookID = al.BookID inner join Authors a on al.AuthorID = a.AuthorID " +
+                        "where g.FB2Code = '" + genre + "' order by b.BookID", cn).ExecuteReader())
+                {
+                    bool first = true;
+                    long _bookid = 0;
+                    Book o = null;
+                    string _id = null;
+                    while (dr.Read())
+                    {
+                        if (_bookid != (long)dr["BookID"])
+                        {
+                            if (first) first = false;
+                            else
+                            {
+                                lst.Add(o);
+                                if (!_lst.ContainsKey(_id))
+                                    _lst.Add(_id, o);
+                            }
+                            _id = dr["Folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
+                            o = new Book(_id);
+                            o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
+                            o.Annotation = dr["Annotation"].ToString();
+                            o.BookDate = DateTime.MinValue;
+                            o.ID = _id; //Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
+                            o.Title = dr["Title"].ToString();
+                            o.Language = dr["Lang"].ToString();
+                            o.HasCover = false;
+                            o.DocumentDate = DateTime.MinValue;
+                            if (!(dr["SeriesID"] is DBNull))
+                                o.Sequence = dr["SeriesID"].ToString();
+                            else
+                                o.Sequence = null;
+                            if (!(dr["SeqNumber"] is DBNull))
+                                o.NumberInSequence = (uint)(long)dr["SeqNumber"];
+                            else
+                                o.NumberInSequence = 0;
+                            o.DocumentSize = (uint)(long)dr["BookSize"];
+                            o.Genres.Add(dr["GenreAlias"].ToString());
+                            o.Authors.Add(dr["SearchName"].ToString());
+                        }
+                        else
+                        {
+                            o.Authors.Add(dr["SearchName"].ToString());
+                        }
+                    }
+                    if (o != null)
+                    {
+                        lst.Add(o);
+                        if (!_lst.ContainsKey(_id))
+                            _lst.Add(_id, o);
+                    }
+                }
+            }
+            return lst;
         }
 
         public List<Book> GetBooksBySequence(string sequence)
