@@ -71,7 +71,7 @@ namespace TinyOPDS.OPDS
                 // Add catalog entries
                 foreach (string sequence in sequences)
                 {
-                    var seriesCount = LibraryFactory.GetLibrary().GetBooksBySequence(sequence).Count;
+                    var seriesCount = LibraryFactory.GetLibrary().GetBooksBySequenceCount(sequence);
 
                     doc.Root.Add(
                         new XElement("entry",

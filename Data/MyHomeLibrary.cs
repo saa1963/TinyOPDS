@@ -147,7 +147,7 @@ namespace TinyOPDS.Data
                     using (var cn = new SQLiteConnection(ConnectionString))
                     {
                         if (cn.State != ConnectionState.Open) cn.Open();
-                        using (var dr = new SQLiteCommand("select distinct SeriesTitle from Series order by SeriesTitle", cn).ExecuteReader())
+                        using (var dr = new SQLiteCommand("select distinct SearchSeriesTitle from Series order by SearchSeriesTitle", cn).ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -417,9 +417,72 @@ namespace TinyOPDS.Data
             return lst;
         }
 
+        public int GetBooksBySequenceCount(string sequence)
+        {
+            using (var cn = new SQLiteConnection(ConnectionString))
+            {
+                if (cn.State != ConnectionState.Open) cn.Open();
+                var cSql = "select count(*) from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle like @p1 collate NOCASE";
+                var cmd = new SQLiteCommand(cSql, cn);
+                cmd.Parameters.Add("@p1", DbType.String, 80).Value = sequence;
+                return (int)(long)cmd.ExecuteScalar();
+            }
+        }
+
         public List<Book> GetBooksBySequence(string sequence)
         {
-            throw new NotImplementedException();
+            _lst.Clear();
+            var lst = new List<Book>();
+            using (var cn = new SQLiteConnection(ConnectionString))
+            {
+                if (cn.State != ConnectionState.Open) cn.Open();
+                var cSql = "select b.* from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle like @p1 collate NOCASE";
+                var cmd = new SQLiteCommand(cSql, cn);
+                cmd.Parameters.Add("@p1", DbType.String, 80).Value = sequence;
+                using (var dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        var _id = dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
+                        var o = new Book(_id);
+                        o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
+                        o.Annotation = dr["Annotation"].ToString();
+                        o.BookDate = DateTime.MinValue;
+                        o.ID = _id; //Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
+                        o.Title = dr["Title"].ToString();
+                        o.Language = dr["Lang"].ToString();
+                        o.HasCover = false;
+                        o.DocumentDate = DateTime.MinValue;
+                        if (!(dr["SeriesID"] is DBNull))
+                            o.Sequence = dr["SeriesID"].ToString();
+                        else
+                            o.Sequence = null;
+                        if (!(dr["SeqNumber"] is DBNull))
+                            o.NumberInSequence = (uint)(long)dr["SeqNumber"];
+                        else
+                            o.NumberInSequence = 0;
+                        o.DocumentSize = (uint)(long)dr["BookSize"];
+                        using (var dr1 = new SQLiteCommand("select * from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = " + dr["BookID"].ToString() + "  collate NOCASE", cn).ExecuteReader())
+                        {
+                            while (dr1.Read())
+                            {
+                                o.Authors.Add(dr1["SearchName"].ToString());
+                            }
+                        }
+                        using (var dr1 = new SQLiteCommand("select * from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = " + dr["BookID"].ToString() + "  collate NOCASE", cn).ExecuteReader())
+                        {
+                            while (dr1.Read())
+                            {
+                                o.Genres.Add(dr1["GenreAlias"].ToString());
+                            }
+                        }
+                        lst.Add(o);
+                        if (!_lst.ContainsKey(_id))
+                            _lst.Add(_id, o);
+                    }
+                }
+            }
+            return lst;
         }
 
         public List<Book> GetBooksByTitle(string title)

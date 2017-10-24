@@ -29,6 +29,7 @@ namespace TinyOPDS.Data
         int GetBooksByAuthorCount(string author);
         List<Book> GetBooksByAuthor(string author);
         List<Book> GetBooksBySequence(string sequence);
+        int GetBooksBySequenceCount(string sequence);
         List<Book> GetBooksByGenre(string genre);
         void Load();
         void Save();

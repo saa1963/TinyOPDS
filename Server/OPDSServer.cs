@@ -68,7 +68,7 @@ namespace TinyOPDS.Server
                 bool acceptFB2 = Utils.DetectFB2Reader(userAgent);
 
                 // Is it OPDS request?
-                if (string.IsNullOrEmpty(ext))
+                if (string.IsNullOrEmpty(ext) || !new string[] {".ico", ".jpeg", ".epub", ".zip", ".xml"}.Contains(ext))
                 {
                     try
                     {

@@ -387,6 +387,11 @@ namespace TinyOPDS.Data
             lock (_books) return _books.Values.Where(b => b.Sequence.Contains(sequence)).ToList();
         }
 
+        public int GetBooksBySequenceCount(string sequence)
+        {
+            lock (_books) return _books.Values.Where(b => b.Sequence.Contains(sequence)).Count();
+        }
+
         /// <summary>
         /// Return books by selected genre
         /// </summary>
