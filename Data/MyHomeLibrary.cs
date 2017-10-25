@@ -311,6 +311,7 @@ namespace TinyOPDS.Data
                     {
                         if (_bookid != (long)dr["BookID"])
                         {
+                            _bookid = (long)dr["BookID"];
                             if (first) first = false;
                             else
                             {
@@ -386,6 +387,7 @@ namespace TinyOPDS.Data
                     {
                         if (_bookid != (long)dr["BookID"])
                         {
+                            _bookid = (long)dr["BookID"];
                             if (first) first = false;
                             else
                             {
