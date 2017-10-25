@@ -450,8 +450,8 @@ namespace TinyOPDS.Data
             using (var cn = new SQLiteConnection(ConnectionString))
             {
                 if (cn.State != ConnectionState.Open) cn.Open();
-                var cSql = "select b.*, (select min(a.SearchName) from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = b.BookID collate NOCASE) Author, " +
-                    "(select min(g.GenreAlias) from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = b.BookID collate NOCASE) Genre " +
+                var cSql = "select b.*, (select a.SearchName from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = b.BookID collate NOCASE) Author, " +
+                    "(select g.GenreAlias from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = b.BookID collate NOCASE) Genre " +
                     "from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle = @p1 collate NOCASE";
                 var cmd = new SQLiteCommand(cSql, cn);
                 cmd.Parameters.Add("@p1", DbType.String, 80).Value = sequence;
