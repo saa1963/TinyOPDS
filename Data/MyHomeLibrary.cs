@@ -58,7 +58,7 @@ namespace TinyOPDS.Data
                 using (var cn = new SQLiteConnection(ConnectionString))
                 {
                     if (cn.State != ConnectionState.Open) cn.Open();
-                    var o = new SQLiteCommand("select count(BookID) from Books", cn).ExecuteScalar();
+                    var o = new SQLiteCommand("select count(BookID) from Books where IsDeleted=0", cn).ExecuteScalar();
                     return (int)(long)o;
                 }
             }
@@ -71,7 +71,7 @@ namespace TinyOPDS.Data
                 using (var cn = new SQLiteConnection(ConnectionString))
                 {
                     if (cn.State != ConnectionState.Open) cn.Open();
-                    return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.FB2'", cn).ExecuteScalar();
+                    return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.FB2' and IsDeleted=0", cn).ExecuteScalar();
                 }
             }
         }
@@ -83,7 +83,7 @@ namespace TinyOPDS.Data
                 using (var cn = new SQLiteConnection(ConnectionString))
                 {
                     if (cn.State != ConnectionState.Open) cn.Open();
-                    return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.EPUB'", cn).ExecuteScalar();
+                    return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.EPUB' and IsDeleted=0", cn).ExecuteScalar();
                 }
             }
         }
@@ -99,7 +99,7 @@ namespace TinyOPDS.Data
                     using (var cn = new SQLiteConnection(ConnectionString))
                     {
                         if (cn.State != ConnectionState.Open) cn.Open();
-                        using (var dr = new SQLiteCommand("select distinct Title from Books order by Title", cn).ExecuteReader())
+                        using (var dr = new SQLiteCommand("select distinct Title from Books order by Title and IsDeleted=0", cn).ExecuteReader())
                         {
                             while (dr.Read())
                             {
@@ -267,14 +267,58 @@ namespace TinyOPDS.Data
 
         public Book GetBook(string id)
         {
-            //using (var cn = new SQLiteConnection(ConnectionString))
-            //{
-            //    if (cn.State != ConnectionState.Open) cn.Open();
-            //    var o = new SQLiteCommand("select * from Books where BookID = ", cn).ExecuteScalar();
-            //    return (int)(long)o;
-            //}
+            if (_lst.ContainsKey(id))
+                return _lst[id];
+            else
+            {
+                using (var cn = new SQLiteConnection(ConnectionString))
+                {
+                    if (cn.State != ConnectionState.Open) cn.Open();
+                    var mas = id.Split('@');
+                    var mas1 = mas[1].Split('.');
+                    var cSql = "select * from Books b, (select a.SearchName from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = b.BookID collate NOCASE) Author, " +
+                        "(select g.GenreAlias from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = b.BookID collate NOCASE) Genre " +
+                        "where Folder = @p1 and FileName = @p2 and IsDeleted=0";
+                    var cmd = new SQLiteCommand(cSql, cn);
+                    cmd.Parameters.Add("@p1", DbType.String, 400).Value = mas[0];
+                    cmd.Parameters.Add("@p2", DbType.String, 400).Value = mas1[0];
+                    using (var dr = cmd.ExecuteReader())
+                    {
+                        Book o = null;
+                        if (dr.Read())
+                        {
+                            o = CreateBook(dr);
+                            o.Authors.Add(dr["Author"].ToString());
+                            o.Genres.Add(dr["Genre"].ToString());
+                        }
+                        return o;
+                    }
+                }
+            }
+        }
 
-            return _lst[id];
+        private Book CreateBook(SQLiteDataReader dr)
+        {
+            var id = dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
+            var o = new Book(id);
+            o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
+            o.Annotation = dr["Annotation"].ToString();
+            o.BookDate = DateTime.MinValue;
+            o.ID = id;
+            o.Title = dr["Title"].ToString();
+            o.Language = dr["Lang"].ToString();
+            o.HasCover = false;
+            o.DocumentDate = DateTime.MinValue;
+            if (!(dr["SeriesID"] is DBNull))
+                o.Sequence = dr["SeriesID"].ToString();
+            else
+                o.Sequence = null;
+            if (!(dr["SeqNumber"] is DBNull))
+                o.NumberInSequence = (uint)(long)dr["SeqNumber"];
+            else
+                o.NumberInSequence = 0;
+            o.DocumentSize = (uint)(long)dr["BookSize"];
+            return o;
         }
 
         public int GetBooksByAuthorCount(string author)
@@ -282,7 +326,10 @@ namespace TinyOPDS.Data
             using (var cn = new SQLiteConnection(ConnectionString))
             {
                 if (cn.State != ConnectionState.Open) cn.Open();
-                var rt = (int)(long)new SQLiteCommand("select count(*) from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where a.SearchName like '" + author + "%'", cn).ExecuteScalar();
+                var cSql = "select count(*) from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where a.SearchName like @p1";
+                var cmd = new SQLiteCommand(cSql, cn);
+                cmd.Parameters.Add("@p1", DbType.String, 100).Value = author + "%";
+                var rt = (int)(long)cmd.ExecuteScalar();
                 return rt;
             }
         }
@@ -298,7 +345,7 @@ namespace TinyOPDS.Data
                 if (cn.State != ConnectionState.Open) cn.Open();
                 var cSql = "select b.*, g.GenreAlias, a.SearchName from Author_List al inner join Authors a on al.AuthorID = a.AuthorID inner join Books b on al.BookID = b.BookID " +
                     "inner join Genre_List gl on b.BookID = gl.BookID inner join Genres g on gl.GenreCode = g.GenreCode " +
-                    "where a.SearchName like @p1 order by b.BookID collate NOCASE";
+                    "where a.SearchName like @p1 and b.IsDeleted = 0 order by b.BookID collate NOCASE";
                 var cmd = new SQLiteCommand(cSql, cn);
                 cmd.Parameters.Add("@p1", DbType.String, 512).Value = author + "%";
                 using (var dr = cmd.ExecuteReader())
@@ -306,7 +353,6 @@ namespace TinyOPDS.Data
                     bool first = true;
                     long _bookid = 0;
                     Book o = null;
-                    string _id = null;
                     while (dr.Read())
                     {
                         if (_bookid != (long)dr["BookID"])
@@ -316,28 +362,10 @@ namespace TinyOPDS.Data
                             else
                             {
                                 lst.Add(o);
-                                if (!_lst.ContainsKey(_id))
-                                    _lst.Add(_id, o);
+                                if (!_lst.ContainsKey(o.ID))
+                                    _lst.Add(o.ID, o);
                             }
-                            _id = dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
-                            o = new Book(_id);
-                            o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
-                            o.Annotation = dr["Annotation"].ToString();
-                            o.BookDate = DateTime.MinValue;
-                            o.ID = _id; //Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
-                            o.Title = dr["Title"].ToString();
-                            o.Language = dr["Lang"].ToString();
-                            o.HasCover = false;
-                            o.DocumentDate = DateTime.MinValue;
-                            if (!(dr["SeriesID"] is DBNull))
-                                o.Sequence = dr["SeriesID"].ToString();
-                            else
-                                o.Sequence = null;
-                            if (!(dr["SeqNumber"] is DBNull))
-                                o.NumberInSequence = (uint)(long)dr["SeqNumber"];
-                            else
-                                o.NumberInSequence = 0;
-                            o.DocumentSize = (uint)(long)dr["BookSize"];
+                            o = CreateBook(dr);
                             o.Authors.Add(dr["SearchName"].ToString());
                             o.Genres.Add(dr["GenreAlias"].ToString());
                         }
@@ -349,8 +377,8 @@ namespace TinyOPDS.Data
                     if (o != null)
                     {
                         lst.Add(o);
-                        if (!_lst.ContainsKey(_id))
-                            _lst.Add(_id, o);
+                        if (!_lst.ContainsKey(o.ID))
+                            _lst.Add(o.ID, o);
                     }
                 }
             }
@@ -374,7 +402,7 @@ namespace TinyOPDS.Data
                 if (cn.State != ConnectionState.Open) cn.Open();
                 var cSql = "select b.*, g.GenreAlias, a.SearchName from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode inner join Books b on gl.BookID = b.BookID " +
                         "inner join Author_List al on b.BookID = al.BookID inner join Authors a on al.AuthorID = a.AuthorID " +
-                        "where g.FB2Code = @p1 order by b.BookID";
+                        "where g.FB2Code = @p1 and b.IsDeleted = 0 order by b.BookID";
                 var cmd = new SQLiteCommand(cSql, cn);
                 cmd.Parameters.Add("@p1", DbType.String, 20).Value = genre;
                 using (var dr = cmd.ExecuteReader())
@@ -382,7 +410,6 @@ namespace TinyOPDS.Data
                     bool first = true;
                     long _bookid = 0;
                     Book o = null;
-                    string _id = null;
                     while (dr.Read())
                     {
                         if (_bookid != (long)dr["BookID"])
@@ -392,28 +419,10 @@ namespace TinyOPDS.Data
                             else
                             {
                                 lst.Add(o);
-                                if (!_lst.ContainsKey(_id))
-                                    _lst.Add(_id, o);
+                                if (!_lst.ContainsKey(o.ID))
+                                    _lst.Add(o.ID, o);
                             }
-                            _id = dr["Folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
-                            o = new Book(_id);
-                            o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
-                            o.Annotation = dr["Annotation"].ToString();
-                            o.BookDate = DateTime.MinValue;
-                            o.ID = _id; //Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
-                            o.Title = dr["Title"].ToString();
-                            o.Language = dr["Lang"].ToString();
-                            o.HasCover = false;
-                            o.DocumentDate = DateTime.MinValue;
-                            if (!(dr["SeriesID"] is DBNull))
-                                o.Sequence = dr["SeriesID"].ToString();
-                            else
-                                o.Sequence = null;
-                            if (!(dr["SeqNumber"] is DBNull))
-                                o.NumberInSequence = (uint)(long)dr["SeqNumber"];
-                            else
-                                o.NumberInSequence = 0;
-                            o.DocumentSize = (uint)(long)dr["BookSize"];
+                            o = CreateBook(dr);
                             o.Genres.Add(dr["GenreAlias"].ToString());
                             o.Authors.Add(dr["SearchName"].ToString());
                         }
@@ -425,8 +434,8 @@ namespace TinyOPDS.Data
                     if (o != null)
                     {
                         lst.Add(o);
-                        if (!_lst.ContainsKey(_id))
-                            _lst.Add(_id, o);
+                        if (!_lst.ContainsKey(o.ID))
+                            _lst.Add(o.ID, o);
                     }
                 }
             }
@@ -438,7 +447,7 @@ namespace TinyOPDS.Data
             using (var cn = new SQLiteConnection(ConnectionString))
             {
                 if (cn.State != ConnectionState.Open) cn.Open();
-                var cSql = "select count(*) from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle like @p1 collate NOCASE";
+                var cSql = "select count(*) from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle like @p1 and IsDeleted = 0 collate NOCASE";
                 var cmd = new SQLiteCommand(cSql, cn);
                 cmd.Parameters.Add("@p1", DbType.String, 80).Value = sequence;
                 return (int)(long)cmd.ExecuteScalar();
@@ -454,37 +463,19 @@ namespace TinyOPDS.Data
                 if (cn.State != ConnectionState.Open) cn.Open();
                 var cSql = "select b.*, (select a.SearchName from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = b.BookID collate NOCASE) Author, " +
                     "(select g.GenreAlias from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = b.BookID collate NOCASE) Genre " +
-                    "from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle = @p1 collate NOCASE";
+                    "from Books b inner join Series s on b.SeriesID = s.SeriesID where s.SearchSeriesTitle = @p1 and b.IsDeleted = 0 collate NOCASE";
                 var cmd = new SQLiteCommand(cSql, cn);
                 cmd.Parameters.Add("@p1", DbType.String, 80).Value = sequence;
                 using (var dr = cmd.ExecuteReader())
                 {
                     while (dr.Read())
                     {
-                        var _id = dr["folder"].ToString() + "@" + dr["FileName"].ToString() + dr["ext"].ToString();
-                        var o = new Book(_id);
-                        o.AddedDate = ConvertDate(dr["UpdateDate"].ToString());
-                        o.Annotation = dr["Annotation"].ToString();
-                        o.BookDate = DateTime.MinValue;
-                        o.ID = _id; //Utils.CreateGuid(Utils.IsoOidNamespace, o.FileName).ToString();
-                        o.Title = dr["Title"].ToString();
-                        o.Language = dr["Lang"].ToString();
-                        o.HasCover = false;
-                        o.DocumentDate = DateTime.MinValue;
-                        if (!(dr["SeriesID"] is DBNull))
-                            o.Sequence = dr["SeriesID"].ToString();
-                        else
-                            o.Sequence = null;
-                        if (!(dr["SeqNumber"] is DBNull))
-                            o.NumberInSequence = (uint)(long)dr["SeqNumber"];
-                        else
-                            o.NumberInSequence = 0;
-                        o.DocumentSize = (uint)(long)dr["BookSize"];
+                        var o = CreateBook(dr);
                         o.Authors.Add(dr["Author"].ToString());
                         o.Genres.Add(dr["Genre"].ToString());
                         lst.Add(o);
-                        if (!_lst.ContainsKey(_id))
-                            _lst.Add(_id, o);
+                        if (!_lst.ContainsKey(o.ID))
+                            _lst.Add(o.ID, o);
                     }
                 }
             }
@@ -493,7 +484,30 @@ namespace TinyOPDS.Data
 
         public List<Book> GetBooksByTitle(string title)
         {
-            throw new NotImplementedException();
+            _lst.Clear();
+            var lst = new List<Book>();
+            using (var cn = new SQLiteConnection(ConnectionString))
+            {
+                if (cn.State != ConnectionState.Open) cn.Open();
+                var cSql = "select b.*, (select a.SearchName from Author_List al inner join Authors a on al.AuthorID = a.AuthorID where al.BookID = b.BookID collate NOCASE) Author, " +
+                    "(select g.GenreAlias from Genre_List gl inner join Genres g on gl.GenreCode = g.GenreCode where gl.BookID = b.BookID collate NOCASE) Genre " +
+                    "from Books where b.SearchTitle like @p1 and b.IsDeleted = 0 collate NOCASE";
+                var cmd = new SQLiteCommand(cSql, cn);
+                cmd.Parameters.Add("@p1", DbType.String, 80).Value = "%" + title.ToUpper() + "%";
+                using (var dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        var o = CreateBook(dr);
+                        o.Authors.Add(dr["Author"].ToString());
+                        o.Genres.Add(dr["Genre"].ToString());
+                        lst.Add(o);
+                        if (!_lst.ContainsKey(o.ID))
+                            _lst.Add(o.ID, o);
+                    }
+                }
+            }
+            return lst;
         }
 
         public void Load()
