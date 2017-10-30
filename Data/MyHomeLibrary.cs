@@ -15,7 +15,7 @@ namespace TinyOPDS.Data
         private string ConnectionString;
         public MyHomeLibrary()
         {
-            if (!String.IsNullOrWhiteSpace(Settings.Default.LibraryPath))
+            if (!String.IsNullOrWhiteSpace(Settings.Default.MyHomeLibraryPath))
             {
                 ConnectionString = GetConnectionString();
             }
@@ -24,12 +24,12 @@ namespace TinyOPDS.Data
 
         private void Default_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "LibraryPath") ConnectionString = GetConnectionString();
+            if (e.PropertyName == "MyHomeLibraryPath") ConnectionString = GetConnectionString();
         }
 
         private string GetConnectionString()
         {
-            var dir =  Path.Combine(Directory.GetParent(Settings.Default.LibraryPath).FullName, "MyHomeLib", "Data");
+            var dir =  Settings.Default.MyHomeLibraryPath;
             var files = Directory.GetFiles(dir, "*.hlc2");
             var file = "";
             var minDate = DateTime.MinValue;

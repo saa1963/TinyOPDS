@@ -61,6 +61,8 @@ namespace TinyOPDS
 
             InitializeComponent();
 
+
+
             // Assign combo data source to the list of all available interfaces
             interfaceCombo.DataSource = UPnPController.LocalInterfaces;
             interfaceCombo.DataBindings.Add(new Binding("SelectedIndex", Properties.Settings.Default, "LocalInterfaceIndex", false, DataSourceUpdateMode.OnPropertyChanged));
@@ -213,6 +215,8 @@ namespace TinyOPDS
             {
                 databaseFileName.Text = Utils.CreateGuid(Utils.IsoOidNamespace, Properties.Settings.Default.LibraryPath).ToString() + ".db";
             }
+            tbMode.SelectedIndex = Settings.Default.LibraryKind;
+            tbMyHomeData.Text = Settings.Default.MyHomeLibraryPath ?? "";
             if (Utils.IsLinux) startWithWindows.Enabled = false;
             if (string.IsNullOrEmpty(Properties.Settings.Default.ConvertorPath))
             {
@@ -318,20 +322,50 @@ namespace TinyOPDS
         {
             using (FolderBrowserDialog dialog = new FolderBrowserDialog())
             {
-                dialog.SelectedPath = (sender as Button == folderButton) ? libraryPath.Text : convertorPath.Text;
+                //dialog.SelectedPath = (sender as Button == folderButton) ? libraryPath.Text : convertorPath.Text;
+                var senderControl = sender as Button;
+                if (senderControl == folderButton)
+                    dialog.SelectedPath = libraryPath.Text;
+                else if (senderControl == convertorFolder)
+                {
+                    dialog.SelectedPath = convertorPath.Text;
+                }
+                else if (senderControl == btnMyHomeData)
+                {
+                    dialog.SelectedPath = tbMyHomeData.Text;
+                }
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    if (sender as Button == folderButton)
+                    if (senderControl == folderButton)
                     {
                         libraryPath.Text = dialog.SelectedPath;
                         libraryPath_Validated(sender, e);
                     }
-                    else
+                    else if (senderControl == convertorFolder)
                     {
                         convertorPath.Text = dialog.SelectedPath;
                         convertorPath_Validated(sender, e);
                     }
+                    else if (senderControl == btnMyHomeData)
+                    {
+                        tbMyHomeData.Text = dialog.SelectedPath;
+                        tbMyHomeData_Validated(sender, e);
+                    }
                 }
+            }
+        }
+
+        private void tbMyHomeData_Validated(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(tbMyHomeData.Text) && Directory.Exists(tbMyHomeData.Text) && 
+                Directory.GetFiles(tbMyHomeData.Text, "*.hlc2").Any())
+            {
+                Properties.Settings.Default.MyHomeLibraryPath = tbMyHomeData.Text;
+                Settings.Default.Save();
+            }
+            else
+            {
+                tbMyHomeData.Text = Properties.Settings.Default.MyHomeLibraryPath;
             }
         }
 
@@ -778,6 +812,18 @@ namespace TinyOPDS
         /// <param name="sender"></param>
         /// <param name="e"></param>
         static int[] checkIntervals = new int[] { 0, 60 * 24 * 7, 60 * 24 * 30, 1};
+
+        private void tbMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (Settings.Default.LibraryKind != tbMode.SelectedIndex)
+            {
+                Settings.Default.LibraryKind = tbMode.SelectedIndex;
+                MessageBox.Show("Режим работы TinyOPDS изменен. Перезапустите программу.");
+                realExit = true;
+                Close();
+            }
+        }
+
         void _updateChecker_Tick(object sender, EventArgs e)
         {
             if (Properties.Settings.Default.UpdatesCheck >= 0)
