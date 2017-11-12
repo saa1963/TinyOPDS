@@ -57,9 +57,16 @@ namespace TinyOPDS.Data
             {
                 using (var cn = new SQLiteConnection(ConnectionString))
                 {
-                    if (cn.State != ConnectionState.Open) cn.Open();
-                    var o = new SQLiteCommand("select count(BookID) from Books where IsDeleted=0", cn).ExecuteScalar();
-                    return (int)(long)o;
+                    try
+                    {
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        var o = new SQLiteCommand("select count(BookID) from Books where IsDeleted=0", cn).ExecuteScalar();
+                        return (int)(long)o;
+                    }
+                    catch
+                    {
+                        return 0;
+                    }
                 }
             }
         }
@@ -70,8 +77,15 @@ namespace TinyOPDS.Data
             {
                 using (var cn = new SQLiteConnection(ConnectionString))
                 {
-                    if (cn.State != ConnectionState.Open) cn.Open();
-                    return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.FB2' and IsDeleted=0", cn).ExecuteScalar();
+                    try
+                    {
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.FB2' and IsDeleted=0", cn).ExecuteScalar();
+                    }
+                    catch
+                    {
+                        return 0;
+                    }
                 }
             }
         }
@@ -82,8 +96,15 @@ namespace TinyOPDS.Data
             {
                 using (var cn = new SQLiteConnection(ConnectionString))
                 {
-                    if (cn.State != ConnectionState.Open) cn.Open();
-                    return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.EPUB' and IsDeleted=0", cn).ExecuteScalar();
+                    try
+                    {
+                        if (cn.State != ConnectionState.Open) cn.Open();
+                        return (int)(long)new SQLiteCommand("select count(BookID) from Books where SearchExt = '.EPUB' and IsDeleted=0", cn).ExecuteScalar();
+                    }
+                    catch
+                    {
+                        return 0;
+                    }
                 }
             }
         }
@@ -517,12 +538,12 @@ namespace TinyOPDS.Data
 
         public void LoadAsync()
         {
-            throw new NotImplementedException();
+            return;
         }
 
         public void Save()
         {
-            throw new NotImplementedException();
+            return;
         }
     }
 }
